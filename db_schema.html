@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: transparent;
+            color: var(--foreground);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+        }
+        .er-diagram {
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+        .table-box {
+            fill: var(--card);
+            stroke: var(--border);
+            stroke-width: 2;
+        }
+        .table-header {
+            fill: var(--accent);
+            stroke: var(--border);
+            stroke-width: 2;
+        }
+        .text-main {
+            fill: var(--foreground);
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .text-sub {
+            fill: var(--muted-foreground);
+            font-size: 13px;
+        }
+        .pk-label {
+            fill: #eab308;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .fk-label {
+            fill: #3b82f6;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .relation-line {
+            stroke: var(--border);
+            stroke-width: 2;
+            fill: none;
+        }
+        .relation-text {
+            fill: var(--muted-foreground);
+            font-size: 12px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <svg width="800" height="500" viewBox="0 0 800 500" class="er-diagram">
+            <!-- Define Markers for Relationship arrows -->
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="var(--border)" />
+                </marker>
+            </defs>
+
+            <!-- MODELS TABLE -->
+            <rect x="300" y="150" width="200" height="220" rx="10" class="table-box" />
+            <rect x="300" y="150" width="200" height="40" rx="10 10 0 0" class="table-header" />
+            <text x="400" y="175" text-anchor="middle" class="text-main">tbl_models</text>
+            
+            <text x="310" y="210" class="text-sub">id (PK) <tspan class="pk-label">PK</tspan></text>
+            <text x="310" y="230" class="text-sub">nominal_tr</text>
+            <text x="310" y="250" class="text-sub">phase</text>
+            <text x="310" y="270" class="text-sub">voltage</text>
+            <text x="310" y="290" class="text-sub">gas_pipe</text>
+            <text x="310" y="310" class="text-sub">liq_pipe</text>
+            <text x="310" y="330" class="text-sub">dimensions (W,H,D)</text>
+            <text x="310" y="350" class="text-sub">weight</text>
+
+            <!-- PERFORMANCE TABLE -->
+            <rect x="50" y="150" width="200" height="220" rx="10" class="table-box" />
+            <rect x="50" y="150" width="200" height="40" rx="10 10 0 0" class="table-header" />
+            <text x="150" y="175" text-anchor="middle" class="text-main">tbl_performance</text>
+            
+            <text x="60" y="210" class="text-sub">model_id <tspan class="fk-label">FK</tspan></text>
+            <text x="60" y="230" class="text-sub">esp (Pa)</text>
+            <text x="60" y="250" class="text-sub">speed (H/M/L)</text>
+            <text x="60" y="270" class="text-sub">ambient_temp</text>
+            <text x="60" y="290" class="text-sub">room_db_wb</text>
+            <text x="60" y="310" class="text-sub">total_btu</text>
+            <text x="60" y="330" class="text-sub">sensible_btu</text>
+            <text x="60" y="350" class="text-sub">input_w</text>
+
+            <!-- ELECTRICAL TABLE -->
+            <rect x="550" y="150" width="200" height="220" rx="10" class="table-box" />
+            <rect x="550" y="150" width="200" height="40" rx="10 10 0 0" class="table-header" />
+            <text x="650" y="175" text-anchor="middle" class="text-main">tbl_electrical</text>
+            
+            <text x="560" y="210" class="text-sub">model_id <tspan class="pk-label">PK</tspan> <tspan class="fk-label">FK</tspan></text>
+            <text x="560" y="230" class="text-sub">mca</text>
+            <text x="560" y="250" class="text-sub">rla</text>
+            <text x="560" y="270" class="text-sub">lra</text>
+            <text x="560" y="290" class="text-sub">fla</text>
+
+            <!-- Relationships -->
+            <!-- Models to Performance: One-to-Many -->
+            <path d="M 300 260 L 250 260" class="relation-line" marker-end="url(#arrowhead)" />
+            <text x="260" y="250" text-anchor="middle" class="relation-text">1 : N</text>
+
+            <!-- Models to Electrical: One-to-One -->
+            <path d="M 500 260 L 550 260" class="relation-line" marker-end="url(#arrowhead)" />
+            <text x="530" y="250" text-anchor="middle" class="relation-text">1 : 1</text>
+        </svg>
+    </div>
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Carrier HVAC DB Schema</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #020617;
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --border-color: #1e293b;
+            --accent-violet: #a78bfa;
+            --deep-violet: #4c1d95;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --highlight: #22d3ee;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .main-container {
+            display: flex;
+            flex: 1;
+            width: 100%;
+        }
+
+        .canvas-area {
+            flex: 3;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .sidebar {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        /* Header */
+        .header {
+            padding: 1.5rem;
+            background: rgba(15, 23, 42, 0.4);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .pulse-dot {
+            width: 12px; height: 12px;
+            background: var(--accent-violet);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* SVG Styling */
+        svg {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        .table-group {
+            cursor: pointer;
+            transition: filter 0.3s ease, transform 0.3s ease;
+        }
+        .table-group:hover {
+            filter: brightness(1.2);
+        }
+        .table-group.active {
+            filter: drop-shadow(0 0 15px var(--accent-violet));
+        }
+        .relation-line {
+            stroke: var(--border-color);
+            stroke-width: 2;
+            transition: stroke 0.3s ease, stroke-width 0.3s ease;
+        }
+        .relation-line.active {
+            stroke: var(--highlight);
+            stroke-width: 4;
+        }
+
+        /* Sidebar UI */
+        .info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+        .info-card h3 {
+            color: var(--accent-violet);
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .field-list {
+            list-style: none;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .field-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+        }
+        .field-name { color: var(--text-main); font-weight: 500; }
+        .field-type { font-size: 0.75rem; opacity: 0.7; }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            margin-top: 5rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="canvas-area">
+            <div class="header">
+                <div class="pulse-dot"></div>
+                <div>
+                    <h1 style="font-size: 1.2rem;">Carrier HVAC Database Explorer</h1>
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">Click a table to explore relations and fields</p>
+                </div>
+            </div>
+            
+            <svg viewBox="0 0 1000 600">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+                    </marker>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <!-- Relations (Drawn first to be behind) -->
+                <line id="rel-perf" x1="400" y1="240" x2="300" y2="240" class="relation-line" marker-end="url(#arrowhead)" />
+                <line id="rel-elec" x1="600" y1="240" x2="700" y2="240" class="relation-line" marker-end="url(#arrowhead)" />
+
+                <!-- tbl_performance -->
+                <g id="group-performance" class="table-group" onclick="selectTable('performance')">
+                    <rect x="100" y="150" width="200" height="180" rx="8" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+                    <rect x="100" y="150" width="200" height="35" rx="8 8 0 0" fill="#4c1d95" />
+                    <text x="200" y="173" fill="white" font-size="14" font-weight="700" text-anchor="middle">tbl_performance</text>
+                    <text x="115" y="205" fill="white" font-size="11">model_id (FK)</text>
+                    <text x="115" y="225" fill="#a78bfa" font-size="11">• esp (Pa)</text>
+                    <text x="115" y="245" fill="#a78bfa" font-size="11">• speed</text>
+                    <text x="115" y="265" fill="#a78bfa" font-size="11">• ambient_temp</text>
+                    <text x="115" y="285" fill="#a78bfa" font-size="11">• total_btu</text>
+                    <text x="115" y="305" fill="#a78bfa" font-size="11">• sensible_btu</text>
+                    <text x="115" y="325" fill="#a78bfa" font-size="11">• input_w</text>
+                </g>
+
+                <!-- tbl_models -->
+                <g id="group-models" class="table-group" onclick="selectTable('models')">
+                    <rect x="400" y="150" width="200" height="180" rx="8" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+                    <rect x="400" y="150" width="200" height="35" rx="8 8 0 0" fill="#4c1d95" />
+                    <text x="500" y="173" fill="white" font-size="14" font-weight="700" text-anchor="middle">tbl_models</text>
+                    <text x="415" y="205" fill="white" font-size="11">id (PK)</text>
+                    <text x="415" y="225" fill="#a78bfa" font-size="11">• nominal_tr</text>
+                    <text x="415" y="245" fill="#a78bfa" font-size="11">• phase / voltage</text>
+                    <text x="415" y="265" fill="#a78bfa" font-size="11">• gas_pipe / liq_pipe</text>
+                    <text x="415" y="285" fill="#a78bfa" font-size="11">• dimensions (W,H,D)</text>
+                    <text x="415" y="305" fill="#a78bfa" font-size="11">• weight</text>
+                </g>
+
+                <!-- tbl_electrical -->
+                <g id="group-electrical" class="table-group" onclick="selectTable('electrical')">
+                    <rect x="700" y="150" width="200" height="180" rx="8" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+                    <rect x="700" y="150" width="200" height="35" rx="8 8 0 0" fill="#4c1d95" />
+                    <text x="800" y="173" fill="white" font-size="14" font-weight="700" text-anchor="middle">tbl_electrical</text>
+                    <text x="715" y="205" fill="white" font-size="11">model_id (PK/FK)</text>
+                    <text x="715" y="225" fill="#a78bfa" font-size="11">• mca</text>
+                    <text x="715" y="245" fill="#a78bfa" font-size="11">• rla</text>
+                    <text x="715" y="265" fill="#a78bfa" font-size="11">• lra</text>
+                    <text x="715" y="285" fill="#a78bfa" font-size="11">• fla</text>
+                </g>
+            </svg>
+        </div>
+
+        <div class="sidebar" id="sidebar">
+            <div id="empty-state" class="empty-state">
+                <p>Click a table in the diagram to see detailed specifications and relationships.</p>
+            </div>
+            <div id="details-content" style="display: none;">
+                <div class="info-card">
+                    <div class="card-header">
+                        <div class="card-dot violet"></div>
+                        <h3 id="table-title">Table Name</h3>
+                    </div>
+                    <ul class="field-list" id="field-list">
+                        <!-- Fields injected by JS -->
+                    </ul>
+                </div>
+                <div class="info-card" style="margin-top: 1rem;">
+                    <div class="card-header">
+                        <div class="card-dot emerald"></div>
+                        <h3>Relationship</h3>
+                    </div>
+                    <p id="rel-desc" style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tableData = {
+            'models': {
+                title: 'tbl_models',
+                fields: [
+                    { name: 'id', type: 'TEXT (PK)', desc: 'Unique model identifier' },
+                    { name: 'nominal_tr', type: 'REAL', desc: 'Nominal cooling capacity in Tons' },
+                    { name: 'phase', type: 'TEXT', desc: 'Electrical phase (1Ph/3Ph)' },
+                    { name: 'voltage', type: 'TEXT', desc: 'Power supply voltage' },
+                    { name: 'gas_pipe', type: 'TEXT', desc: 'Suction pipe diameter' },
+                    { name: 'liq_pipe', type: 'TEXT', desc: 'Liquid pipe diameter' },
+                    { name: 'dimensions', type: 'TEXT', desc: 'Physical size (W x H x D)' },
+                    { name: 'weight', type: 'REAL', desc: 'Net unit weight' },
+                ],
+                relation: 'Central hub. Connects 1-to-Many with Performance and 1-to-1 with Electrical data.'
+            },
+            'performance': {
+                title: 'tbl_performance',
+                fields: [
+                    { name: 'model_id', type: 'TEXT (FK)', desc: 'Reference to tbl_models' },
+                    { name: 'esp', type: 'REAL', desc: 'External Static Pressure (Pa)' },
+                    { name: 'speed', type: 'TEXT', desc: 'Fan speed setting (High/Med/Low)' },
+                    { name: 'ambient', type: 'REAL', desc: 'Outdoor design temperature' },
+                    { name: 'total_btu', type: 'REAL', desc: 'Total cooling capacity' },
+                    { name: 'sensible_btu', type: 'REAL', desc: 'Sensible cooling capacity' },
+                    { name: 'input_w', type: 'REAL', desc: 'Electrical power consumption' },
+                ],
+                relation: 'Performance matrix. Maps capacity to ESP, speed, and ambient conditions for each model.'
+            },
+            'electrical': {
+                title: 'tbl_electrical',
+                fields: [
+                    { name: 'model_id', type: 'TEXT (PK/FK)', desc: 'Reference to tbl_models' },
+                    { name: 'mca', type: 'REAL', desc: 'Minimum Circuit Ampacity' },
+                    { name: 'rla', type: 'REAL', desc: 'Rated Load Amps' },
+                    { name: 'lra', type: 'REAL', desc: 'Locked Rotor Amps' },
+                    { name: 'fla', type: 'REAL', desc: 'Full Load Amps' },
+                ],
+                relation: 'Electrical specs. Stores critical amp values for circuit breaker and wire sizing.'
+            }
+        };
+
+        function selectTable(tableId) {
+            // 1. Update Visuals
+            document.querySelectorAll('.table-group').forEach(g => g.classList.remove('active'));
+            document.getElementById('group-' + tableId).classList.add('active');
+
+            document.querySelectorAll('.relation-line').forEach(l => l.classList.remove('active'));
+            if (tableId === 'models') {
+                document.getElementById('rel-perf').classList.add('active');
+                document.getElementById('rel-elec').classList.add('active');
+            } else if (tableId === 'performance') {
+                document.getElementById('rel-perf').classList.add('active');
+            } else if (tableId === 'electrical') {
+                document.getElementById('rel-elec').classList.add('active');
+            }
+
+            // 2. Update Sidebar
+            const data = tableData[tableId];
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('details-content').style.display = 'block';
+            document.getElementById('table-title').innerText = data.title;
+            document.getElementById('rel-desc').innerText = data.relation;
+
+            const fieldList = document.getElementById('field-list');
+            fieldList.innerHTML = '';
+            data.fields.forEach(f => {
+                const li = document.createElement('li');
+                li.className = 'field-item';
+                li.innerHTML = `<span class="field-name">${f.name}</span><span class="field-type">${f.type}</span>`;
+                li.title = f.desc; // Tooltip
+                fieldList.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
